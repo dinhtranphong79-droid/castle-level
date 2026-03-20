@@ -25,7 +25,9 @@ h2 { margin-bottom: 16px; }
 <div class="input-group"><label>Hộp pháo</label><input type="number" id="boxes" value="0" min="0"></div>
 <div class="input-group"><label>Cấp mục tiêu</label><input type="number" id="targetLevel" value="" min="1" placeholder="Để trống nếu muốn tính cấp tối đa"></div>
 <button id="btnCompute">Tính</button>
+<button onclick="clearHistory()" style="background:#ef4444">Xóa lịch sử</button>
 <div id="output" class="result" style="visibility:hidden"></div>
+<div id="historyBox" class="result"></div>
 </div>
 
 <script>
@@ -152,9 +154,52 @@ function compute(){
             out.innerHTML=`<b>Không đủ tài nguyên để nâng cấp</b>`;
         }
     }
+   // --- Lưu lịch sử không giới hạn (có kiểm soát dung lượng) ---
+const now = new Date().toLocaleString("vi-VN");
+
+let history = JSON.parse(localStorage.getItem("historyCompute") || "[]");
+
+history.push({
+    time: now,
+    result: out.innerText.substring(0, 300)
+});
+
+// Giới hạn dung lượng ~4MB
+while (JSON.stringify(history).length > 4000000) {
+    history.shift();
+}
+
+localStorage.setItem("historyCompute", JSON.stringify(history)); 
+renderHistory();
 }
 
 document.getElementById('btnCompute').addEventListener('click', compute);
+
+// Hiển thị lịch sử khi mở trang
+window.onload = renderHistory;
+function renderHistory(){
+    const box = document.getElementById("historyBox");
+    let history = JSON.parse(localStorage.getItem("historyCompute") || "[]");
+
+    if(history.length === 0){
+        box.innerHTML = "<i>Chưa có lịch sử</i>";
+        return;
+    }
+
+    box.innerHTML = "<b>Lịch sử gần nhất:</b><br>";
+
+    history.slice(-5).reverse().forEach(h=>{
+        box.innerHTML += `
+        <div style="margin-top:8px">
+            🕒 <b>${h.time}</b><br>
+            <small>${h.result}</small>
+        </div><hr>`;
+    });
+}
+function clearHistory(){
+    localStorage.removeItem("historyCompute");
+    renderHistory();
+}
 </script>
 </body>
 </html>
